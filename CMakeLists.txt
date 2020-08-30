@@ -6,7 +6,9 @@ add_subdirectory(third-party/drogon)
 
 add_executable(tabmo-coding-challenge 
 	src/tabmo-coding-challenge.cpp
-	src/RtbCtrl.cpp)
+	src/RtbCtrl.cpp
+	src/BidRequest.cpp
+	src/Campagnes)
 	
 file(COPY res DESTINATION ./)
 
