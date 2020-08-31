@@ -45,6 +45,7 @@ struct Campagne
 		}
 		// TODO : Vérification des nombres d'éléments dans les filters
 		// TODO : Vérification si un filtre est dans include, il peut pas etre dans exclude
+		// TODO : Controle des mins / maxs
 	}
 
 	string ToString()

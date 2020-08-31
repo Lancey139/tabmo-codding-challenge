@@ -15,7 +15,7 @@ using namespace std;
 void RtbCtrl::asyncHandleHttpRequest(const HttpRequestPtr &req,
 									  std::function<void(const HttpResponsePtr &)> &&callback)
 {
-
+	Json::Value lResult;
 	shared_ptr<Json::Value> lJsonData = req->getJsonObject();
 	if(lJsonData)
 	{
@@ -55,7 +55,7 @@ void RtbCtrl::asyncHandleHttpRequest(const HttpRequestPtr &req,
 		{
 			LOG_DEBUG << "Données valides reçues" << lBidRequest.mId;
 			// Sélection de la campagne
-			Campagnes::SelectCampagne(lBidRequest);
+			lResult = Campagnes::SelectCampagne(lBidRequest);
 		}
 		else
 		{
@@ -66,9 +66,10 @@ void RtbCtrl::asyncHandleHttpRequest(const HttpRequestPtr &req,
 	{
 		LOG_WARN << "Le payload de la requete n'est pas de type JSON, la requete est ignorée";
 	}
+	// Génération de la requete
+	auto resp = HttpResponse::newHttpJsonResponse(lResult);
+	// Gestion du status
+	lResult.size() != 0 ? resp->setStatusCode(HttpStatusCode::k200OK) : resp->setStatusCode(HttpStatusCode::k204NoContent);
 
-	Json::Value ret;
-	ret["message"] = "Hello, World!";
-	auto resp = HttpResponse::newHttpJsonResponse(ret);
 	callback(resp);
 }
