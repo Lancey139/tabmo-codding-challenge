@@ -8,6 +8,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <list>
 #include <mutex>
 
 #include "BidRequest.h"
@@ -35,7 +36,7 @@ class Campagnes {
 		 * @param pBidRequest : La bid request obtenue à partir du JSON de la requete / Passée par référence pour éviter une copie
 		 * @return : Référence constante vers la campagne retenue
 		 */
-		static const Campagne& SelectCampagne(BidRequest& pBidRequest);
+		static Json::Value SelectCampagne(BidRequest& pBidRequest);
 
 		/*
 		 * Methode permettant d'obtenir le nombre de campagne parsée
@@ -44,9 +45,14 @@ class Campagnes {
 		static int GetCampagnesCount();
 
 	private:
+		// L'attribut statique mListeCampagnes permet de stocker l'ensemble des campagnes parsées dans le JSON
 		static vector<Campagne> mListeCampagnes;
+		// L'attribut mAccesCampagnes permet de sécuriser l'accès à mListeCampagne en cas de modification du vecteur
 		static mutex mAccesCampagnes;
+		// L'attribut mListeMustex permet de sécuriser l'accès à une campagne en particulier : il y en a autant de campagnes
+		static vector<mutex> mListeMutex;
 
-		static map<string, string> GetFilterFromItr(Json::ValueIterator& pItr, string pFilterType);
+
+		static map<string, vector<string>> GetFilterFromItr(Json::ValueIterator& pItr, string pFilterType);
 };
 

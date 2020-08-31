@@ -8,13 +8,17 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <string>
+#include <stdio.h>
 
 #include "Campagnes.h"
 #include "Campagne.h"
 
+using namespace std;
 
 vector<Campagne> Campagnes::mListeCampagnes;
 mutex Campagnes::mAccesCampagnes;
+vector<mutex> Campagnes::mListeMutex;
 
 Campagnes::Campagnes() {
 	// TODO Auto-generated constructor stub
@@ -51,8 +55,8 @@ bool Campagnes::ParseCampagnesFromJson(string pCheminVersJson)
 	        		// Cette facon de procéder implique de copier la map des valeurs 2 fois (une par le return + une lors de la
 	        		// construction de l'objet.
 	        		// Ce code n'étant executer qu'une seule fois au démarage, ce problème est dépriorisé
-	        		map<string,string> lIncludeFilter;
-	        		map<string,string> lExcludeFilter;
+	        		map<string,vector<string>> lIncludeFilter;
+	        		map<string,vector<string>> lExcludeFilter;
 
 					if(!(*itr)["filters"]["include"].empty())
 					{
@@ -77,9 +81,12 @@ bool Campagnes::ParseCampagnesFromJson(string pCheminVersJson)
 	        		// On prend tout de meme le lock par précaution
 	        		mAccesCampagnes.lock();
 	        		mListeCampagnes.push_back(lCampagne);
+	        		// TODO
+	        		//mutex lMutex;
+	        		//mListeMutex.push_back(lMutex);
 	        		mAccesCampagnes.unlock();
 
-	        		LOG_DEBUG << "CAMPAGNE INFO " << lCampagne.ToString();
+	        		//LOG_DEBUG << "CAMPAGNE INFO " << lCampagne.ToString();
 	        	}
 	        	// Cas ou une mauvaise valeur a été entrée dans le JSON
 	    		catch(Json::LogicError &JsonExcept)
@@ -116,35 +123,106 @@ bool Campagnes::ParseCampagnesFromJson(string pCheminVersJson)
 }
 
 
-const Campagne& Campagnes::SelectCampagne(BidRequest& pBidRequest)
+Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
 {
+	/*
+	 * Afin que cette méthode reste ThreadSafe mais qu'elle soit également perfomante
+	 * J'ai choisi d'utiliser un tableau de mutex : on itère sur la liste des campagnes mais
+	 * on ne lock que la campagne en cours d'itération
+	 * Il n'est pas nécessaire de locker pour la première boucle for car on ne va pas dans cette méthode
+	 * Réallouer des ressources. Ainsi on peut se permettre de ne locker que les items Campagne
+	 * TODO
+	 */
+	LOG_WARN << "TmListeCampagnes " << mListeCampagnes.size();
+	vector<Json::Value> lCampagneSelectionnee;
+	mAccesCampagnes.lock();
+	for(vector<Campagne>::iterator itr = mListeCampagnes.begin(); itr != mListeCampagnes.end(); itr++ )
+	{
+			/*
+			 * Vérification de la compatibilité de la campagne
+			 */
+			if(pBidRequest.mDeviceH == itr->mHeight &&
+					pBidRequest.mDeviceW == itr->mWidth &&
+					itr->mBudget >= itr->mBidPrice)
+			{
+				/*
+				 * Vérification des filtres
+				 */
+				bool lFiltreCompatible = true;
+				/*
+				 * LANGUES
+				 */
+				// On commence par passer la langue dans la requete en minuscule
+				for_each(pBidRequest.mDeviceLang.begin(), pBidRequest.mDeviceLang.end(), [](char& c){c = tolower(c);});
+
+				auto lLambdaLang = [&pBidRequest](string filterValue){
+							return pBidRequest.mDeviceLang.compare(filterValue) == 0;
+						};
+				// Pas de vérification sur mDeviceLang ici car déjà vérifier à l'arriver de la requete
+				if( itr->mFilterInclude.count("language"))
+					lFiltreCompatible =  count_if(itr->mFilterInclude.at("language").begin(), itr->mFilterInclude.at("language").end(), lLambdaLang) != 0;
+
+				if( lFiltreCompatible && itr->mFilterExlude.count("language"))
+					lFiltreCompatible =  count_if(itr->mFilterExlude.at("language").begin(), itr->mFilterExlude.at("language").end(), lLambdaLang) == 0;
+
+				/*
+				 * Nom de l'application
+				 */
+				auto lLambdaApp = [&pBidRequest](string filterValue){
+							return pBidRequest.mAppName.find(filterValue) != string::npos;
+						};
+				// Pas de vérification sur mDeviceLang ici car déjà vérifier à l'arriver de la requete
+				if( lFiltreCompatible && itr->mFilterInclude.count("application"))
+					lFiltreCompatible =  count_if(itr->mFilterInclude.at("application").begin(), itr->mFilterInclude.at("application").end(), lLambdaApp) != 0;
+
+				if( lFiltreCompatible && itr->mFilterExlude.count("application"))
+					lFiltreCompatible =  count_if(itr->mFilterExlude.at("application").begin(), itr->mFilterExlude.at("application").end(), lLambdaApp) == 0;
+
+				/*
+				 * IFA
+				 */
+				// On commence par passer la langue dans la requete en minuscule
+				for_each(pBidRequest.mDeviceIfa.begin(), pBidRequest.mDeviceIfa.end(), [](char& c){c = tolower(c);});
+
+				auto lLambdaIFA = [&pBidRequest](string filterValue){
+							return pBidRequest.mDeviceIfa.compare(filterValue) == 0;
+						};
+				// Pas de vérification sur mDeviceLang ici car déjà vérifier à l'arriver de la requete
+				if( lFiltreCompatible && itr->mFilterInclude.count("ifa"))
+					lFiltreCompatible =  count_if(itr->mFilterInclude.at("ifa").begin(), itr->mFilterInclude.at("ifa").end(), lLambdaIFA) != 0;
+
+				if( lFiltreCompatible && itr->mFilterExlude.count("ifa"))
+					lFiltreCompatible =  count_if(itr->mFilterExlude.at("ifa").begin(), itr->mFilterExlude.at("ifa").end(), lLambdaIFA) == 0;
+
+				/*
+				 * Fin de la vérification de la campagne, ajout au vecteur de campagne compatible
+				 */
+				if(lFiltreCompatible)
+				{
+					LOG_WARN << "Campagne compatible trouvée " << itr->mId;
+					Json::Value lCampagne;
+					lCampagne["auctionId"] = pBidRequest.mId;
+					lCampagne["campaignId"] = itr->mId;
+					lCampagne["url"] = itr->mUrl;
+					lCampagne["price"] = itr->mBidPrice;
+
+					lCampagneSelectionnee.push_back(lCampagne);
+				}
+
+			}
+	}
+	mAccesCampagnes.unlock();
+	/*
+	 * La liste des campagne compatible a été établie, on finalise le choix
+	 */
 	// TODO
 	/*
-	 * Vérification campagne
-	 *
-	Une campagne sera considérée comme compatible avec un emplacement publicitaire si :
-
-	    La taille de l'emplacement publicitaire est compatible avec la taille de la publicité
-	    Le budget restant de la campagne est supérieur ou égal au montant de l'enchère (bidPrice) à envoyer
-	    L'emplacement publicitaire est compatible avec les filtres de la campagne
-	*/
-
-	/*
-	 * Filtres
+	 * On retire l'argent de la campagne qui a payé l'emplacement
 	 */
+	// TODO
 
-	//La vérification sera faite avec le champ device.lang de la bid-request. La comparaison doit être effectuée de manière insensible à la casse.
-
-	//La vérification sera faite avec le champ app.name de la bid-request. La comparaison doit être effectuée sur un critère de type "contient".
-
-	//La vérification sera faite avec le champ device.ifa de la bid-request. La comparaison doit être effectuée de manière insensible à la casse.
-
-	/*
-	 * Si plusieurs campagnes sont compatible avec un emplacement publicitaire, un tirage aléatoire sera effectué parmis elle.
-	 *
-	 *	Bonus : Pondérer le tirage aléatoire par un poids correspondant au budget disponible de l
-	 *	a campagne (de telle manière qu'une campagne ayant un budget élevé aient plus de chance d'être diffusée).
-	 */
+	Json::Value ret;
+	return ret;
 }
 
 int Campagnes::GetCampagnesCount()
@@ -155,9 +233,9 @@ int Campagnes::GetCampagnesCount()
 	return lTaille;
 }
 
-map<string, string> Campagnes::GetFilterFromItr(Json::ValueIterator& pItr, string pFilterType)
+map<string, vector<string>> Campagnes::GetFilterFromItr(Json::ValueIterator& pItr, string pFilterType)
 {
-	map<string, string> lMapFilters;
+	map<string, vector<string>> lMapFilters;
 
 	// Préparation de la lambda à appliquer à chaque élément
 	auto lLamdba = [&](string filterKey) {
@@ -165,19 +243,18 @@ map<string, string> Campagnes::GetFilterFromItr(Json::ValueIterator& pItr, strin
 		auto lListe = (*pItr)["filters"][pFilterType][filterKey];
 		// Pour chaque filtre, on itère sur les éléments qui le compose (ie les valeurs surlesquels filtrer)
 		for_each(begin(lListe), end(lListe), [&](auto filterValue) {
-			// Si l'élément est déjà présent dans la map on ajoute la valeur du filtre avec le séparateur /
-			// TODO : tester avec un vecteur de string à la place
-			if(lMapFilters.count(filterKey))
+			/*
+			 * Afin d'optimiser les performances sur le code exécuter à la requete, ces champs
+			 * sont stockés en minuscule
+			 */
+			string lStringValue = filterValue.asString();
+			if(filterKey.compare("language") == 0 || filterKey.compare("ifa") == 0)
 			{
-				lMapFilters[filterKey] += "/"+filterValue.asString();
+				for_each(lStringValue.begin(), lStringValue.end(), [](char& c){c = tolower(c);});
 			}
-			// Sinon on ajoute la clé
-			else
-			{
-				lMapFilters.insert({filterKey, filterValue.asString()});
-			}
+
+			lMapFilters[filterKey].push_back(lStringValue);
 			});
-			LOG_DEBUG << "Inserting " << filterKey << " **** " << lMapFilters[filterKey];
 		};
 
 	// Récupération de la liste des filtres à prendre en compte

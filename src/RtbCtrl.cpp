@@ -8,6 +8,7 @@
 
 #include "RtbCtrl.h"
 #include "BidRequest.h"
+#include "Campagnes.h"
 
 using namespace std;
 
@@ -33,9 +34,7 @@ void RtbCtrl::asyncHandleHttpRequest(const HttpRequestPtr &req,
 		{
 			lBidRequest.mDeviceW = (*lJsonData)["device"]["w"].asInt();
 			lBidRequest.mDeviceH = (*lJsonData)["device"]["h"].asInt();
-			LOG_DEBUG << "lBidRequest.mBidFloor " << (*lJsonData)["bid-floor"].asString();
 			lBidRequest.mBidFloor = stof((*lJsonData)["bid-floor"].asString());
-			LOG_DEBUG << "lBidRequest.mBidFloor " << lBidRequest.mBidFloor;
 		}
 		catch(Json::LogicError &JsonExcept)
 		{
@@ -48,12 +47,15 @@ void RtbCtrl::asyncHandleHttpRequest(const HttpRequestPtr &req,
 
 		/*
 		 * Controle des données critiques:
-		 * - Id ne peut pas être null
+		 * - Id ne peut pas être null ou vide
+		 * - mDeviceLang ne peut pas être null ou vide
 		 * - BidFloor DeviceW et H doivent être différent de 0 -> Json inscrit 0 si le noeud est inexistant
 		 */
-		if(!lBidRequest.mId.empty() && lBidRequest.mBidFloor != 0 && lBidRequest.mDeviceW != 0 && lBidRequest.mDeviceH !=0)
+		if(!lBidRequest.mId.empty() && !lBidRequest.mDeviceLang.empty() && lBidRequest.mBidFloor != 0 && lBidRequest.mDeviceW != 0 && lBidRequest.mDeviceH !=0)
 		{
 			LOG_DEBUG << "Données valides reçues" << lBidRequest.mId;
+			// Sélection de la campagne
+			Campagnes::SelectCampagne(lBidRequest);
 		}
 		else
 		{

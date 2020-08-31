@@ -7,6 +7,8 @@
 
 #pragma once
 #include <string>
+#include <mutex>
+
 /*
  * Structure de données permettant de stocker les informations relatives à une campagne
  * Tous les éléments sauf le Budget sont constants afin qu'on ne puisse pas les modifier
@@ -19,13 +21,13 @@ struct Campagne
 	const int mWidth;
 	const int mHeight;
 	const bool mResponsive;
-	const map<string,string> mFilterInclude;
-	const map<string,string> mFilterExlude;
+	const map<string,vector<string>> mFilterInclude;
+	const map<string,vector<string>> mFilterExlude;
 	const string mUrl;
 
 	Campagne(string pId, float pBudget, float pBidPrice, int pWidth, int pHeight,
-			bool pResponsive, map<string,string> pFilterInclude,
-			map<string,string> pFilterExclude, string pUrl):
+			bool pResponsive, map<string,vector<string>> pFilterInclude,
+			map<string,vector<string>> pFilterExclude, string pUrl):
 				mId(pId), mBudget(pBudget), mBidPrice(pBidPrice), mWidth(pWidth), mHeight(pHeight),
 				mResponsive(pResponsive), mFilterInclude(pFilterInclude), mFilterExlude(pFilterExclude), mUrl(pUrl)
 	{
@@ -42,6 +44,7 @@ struct Campagne
 			throw invalid_argument("L'une des données obligatoires de la campagne est invalide, la requete est ignorée");
 		}
 		// TODO : Vérification des nombres d'éléments dans les filters
+		// TODO : Vérification si un filtre est dans include, il peut pas etre dans exclude
 	}
 
 	string ToString()
