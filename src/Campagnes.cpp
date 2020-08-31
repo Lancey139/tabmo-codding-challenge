@@ -182,15 +182,14 @@ Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
 						return pBidRequest.mDeviceLang.compare(filterValue) == 0;
 					};
 			// Pas de vérification sur mDeviceLang ici car déjà vérifier à l'arriver de la requete
-			if( itr->mFilterInclude.count("language"))
+			if( itr->mFilterInclude.count("language") > 0)
 				lFiltreCompatible =  find_if(itr->mFilterInclude.at("language").begin(), itr->mFilterInclude.at("language").end(), lLambdaLang) !=
 						itr->mFilterInclude.at("language").end();
 
-			if( lFiltreCompatible && itr->mFilterExlude.count("language"))
+			if( lFiltreCompatible && itr->mFilterExlude.count("language") > 0)
 				lFiltreCompatible =  find_if(itr->mFilterExlude.at("language").begin(), itr->mFilterExlude.at("language").end(), lLambdaLang) ==
 						itr->mFilterExlude.at("language").end();
 		}
-
 		/*
 		 * Nom de l'application
 		 */
@@ -199,14 +198,21 @@ Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
 			auto lLambdaApp = [&pBidRequest](string filterValue){
 						return pBidRequest.mAppName.find(filterValue) != string::npos;
 					};
-			// Pas de vérification sur mDeviceLang ici car déjà vérifier à l'arriver de la requete
-			if( lFiltreCompatible && itr->mFilterInclude.count("application"))
-				lFiltreCompatible =  find_if(itr->mFilterInclude.at("application").begin(), itr->mFilterInclude.at("application").end(), lLambdaApp) !=
-						itr->mFilterInclude.at("application").end();
+			// Vérification de la précense du app name
 
-			if( lFiltreCompatible && itr->mFilterExlude.count("application"))
-				lFiltreCompatible =  find_if(itr->mFilterExlude.at("application").begin(), itr->mFilterExlude.at("application").end(), lLambdaApp) ==
+			if( lFiltreCompatible && itr->mFilterInclude.count("application") > 0)
+			{
+				lFiltreCompatible = !pBidRequest.mAppName.empty() &&
+						find_if(itr->mFilterInclude.at("application").begin(), itr->mFilterInclude.at("application").end(), lLambdaApp) !=
 						itr->mFilterInclude.at("application").end();
+			}
+
+			if( lFiltreCompatible && itr->mFilterExlude.count("application") > 0)
+			{
+				lFiltreCompatible =  !pBidRequest.mAppName.empty() &&
+						find_if(itr->mFilterExlude.at("application").begin(), itr->mFilterExlude.at("application").end(), lLambdaApp) ==
+						itr->mFilterExlude.at("application").end();
+			}
 		}
 
 		/*
@@ -220,16 +226,21 @@ Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
 			auto lLambdaIFA = [&pBidRequest](string filterValue){
 						return pBidRequest.mDeviceIfa.compare(filterValue) == 0;
 					};
-			// Pas de vérification sur mDeviceLang ici car déjà vérifier à l'arriver de la requete
-			if( lFiltreCompatible && itr->mFilterInclude.count("ifa"))
-				lFiltreCompatible =  find_if(itr->mFilterInclude.at("ifa").begin(), itr->mFilterInclude.at("ifa").end(), lLambdaIFA) !=
-						itr->mFilterInclude.at("ifa").end();
 
-			if( lFiltreCompatible && itr->mFilterExlude.count("ifa"))
-				lFiltreCompatible =  find_if(itr->mFilterExlude.at("ifa").begin(), itr->mFilterExlude.at("ifa").end(), lLambdaIFA) ==
+			if( lFiltreCompatible && itr->mFilterInclude.count("ifa") > 0)
+			{
+				lFiltreCompatible =  !pBidRequest.mDeviceIfa.empty() &&
+						find_if(itr->mFilterInclude.at("ifa").begin(), itr->mFilterInclude.at("ifa").end(), lLambdaIFA) !=
 						itr->mFilterInclude.at("ifa").end();
+			}
+
+			if( lFiltreCompatible && itr->mFilterExlude.count("ifa") > 0)
+			{
+				lFiltreCompatible =  !pBidRequest.mDeviceIfa.empty() &&
+						find_if(itr->mFilterExlude.at("ifa").begin(), itr->mFilterExlude.at("ifa").end(), lLambdaIFA) ==
+						itr->mFilterExlude.at("ifa").end();
+			}
 		}
-
 		/*
 		 * Fin de la vérification de la campagne, ajout au vecteur de campagne compatible
 		 */
@@ -282,7 +293,7 @@ Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
 	{
 		mAccesCampagnes.lock();
 		vector<Campagne>::iterator lIterator = find_if(mListeCampagnes.begin(), mListeCampagnes.end(), [&lReturn](Campagne& pCampagne){
-			return lReturn["campaignId"].asString().compare(pCampagne.mId);
+			return lReturn["campaignId"].asString().compare(pCampagne.mId) == 0;
 		});
 		if (lIterator != mListeCampagnes.end())
 		{
