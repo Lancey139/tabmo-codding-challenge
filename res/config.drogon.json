@@ -7,7 +7,7 @@
         }
     ],
     "app": {
-        "threads_num": 1,
+        "threads_num": 3,
         "enable_session": false,
         "session_timeout": 0,
         "document_root": "./",

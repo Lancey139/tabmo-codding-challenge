@@ -59,7 +59,7 @@ void RtbCtrl::asyncHandleHttpRequest(const HttpRequestPtr &req,
 		}
 		else
 		{
-			LOG_WARN << "L'une des données obligatoires est invalide, la requete est ignorée" << lBidRequest.mId << lBidRequest.mBidFloor << lBidRequest.mDeviceW << lBidRequest.mDeviceH;
+			LOG_WARN << "L'une des données obligatoires est invalide, la requete est ignorée";
 		}
 	}
 	else
