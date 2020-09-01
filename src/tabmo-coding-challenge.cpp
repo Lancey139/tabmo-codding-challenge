@@ -14,6 +14,10 @@ int main(int argc, char **argv)
 			LOG_ERROR << "Aucune campagne valide n'a été trouvée, arrêt de l'application";
 			exit(1);
 		}
+		else
+		{
+			LOG_INFO << "Nombre de campagnes valides détectées " << CampagnesManager::GetCampagnesCount();
+		}
 	}
 
 	drogon::app().loadConfigFile("./res/config.drogon.json").run();

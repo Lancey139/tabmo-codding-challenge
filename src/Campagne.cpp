@@ -4,8 +4,10 @@
  *  Created on: 01 septembre 2020
  *      Author: Nicolas MEO
  */
-#include "Campagne.h"
 #include <algorithm>
+#include <drogon/drogon.h>
+
+#include "Campagne.h"
 
 using namespace std;
 
@@ -15,6 +17,12 @@ Campagne::Campagne(string pId, float pBudget, float pBidPrice, int pWidth, int p
 			mId(pId), mBudget(pBudget), mBidPrice(pBidPrice), mWidth(pWidth), mHeight(pHeight),
 			mResponsive(pResponsive), mFilterInclude(pFilterInclude), mFilterExlude(pFilterExclude), mUrl(pUrl)
 {
+	/*
+	 * Le choix a été fait de réaliser l"ensemble des controles d'initialisation de la campagne dans le constructeur
+	 * La raison est d'éviter de créer des setters : en effet, on ne souhaite pas que ces éléments soient modifiés dans la suite
+	 * du programme.
+	 */
+
 	// On vérifie que les valeurs requises sont différentes de la valeur donnée par défaut par le parseur JSON en cas
 	// de non précense d'une des balises obligatoires
 	if(pId.empty() ||
@@ -46,11 +54,52 @@ Campagne::Campagne(string pId, float pBudget, float pBidPrice, int pWidth, int p
 
 
 	/*
-	 * Vérification du nombres d'éléments et des mins / max
+	 * Vérification du nombres d'éléments dans les filtres
 	 */
+	auto lVerificationFiltre = [](pair<string,vector<string>> pPair) {
+		bool lIsValidFilter = false;
+		if(pPair.first.compare("language") == 0)
+		{
+			// La langue peut contenir 1 à 10 éléments
+			lIsValidFilter = pPair.second.size() >= 1 && pPair.second.size() <= 10;
+		}
+		else if(pPair.first.compare("application") == 0)
+		{
+			// L'application peut contenir 1 à 100 éléments
+			lIsValidFilter = pPair.second.size() >= 1 && pPair.second.size() <= 100;
+		}
+		else if(pPair.first.compare("ifa") == 0)
+		{
+			// L'application peut contenir 1 à 100 000 éléments
+			lIsValidFilter = pPair.second.size() >= 1 && pPair.second.size() <= 100000;
+		}
+		else
+		{
+			lIsValidFilter = false;
+			LOG_ERROR << "Campagne invalide : Le filtre " << pPair.first << " n'est pas pris en compte par l'application.";
+		}
+		return lIsValidFilter;
+	};
+	int lNombreFiltreInterneValide = count_if(mFilterInclude.begin(), mFilterInclude.end(), lVerificationFiltre);
+	int lNombreFiltreExterneValide = count_if(mFilterExlude.begin(), mFilterExlude.end(), lVerificationFiltre);
+	if(lNombreFiltreInterneValide != mFilterInclude.size() || lNombreFiltreExterneValide != mFilterExlude.size())
+	{
+		throw invalid_argument("L'un des filtres include ou exclude est invalide : trop d'éléments ou balise inconnue");
+	}
 
-	// TODO : Vérification des nombres d'éléments dans les filters
-	// TODO : Controle des mins / maxs
+	/*
+	 * Controle des min/max
+	 */
+	if(mBudget < 1. || mBudget > 1000.)
+	{
+		throw invalid_argument("Le budget de la campagne n'est pas compris entre 1 et 1000");
+	}
+
+	if(mBidPrice < 0.01 || mBidPrice > 10.)
+	{
+		throw invalid_argument("Le BidPrice de la campagne n'est pas compris entre 0.01 et 10");
+	}
+
 }
 
 Campagne::Campagne(const Campagne& pCampagne)
