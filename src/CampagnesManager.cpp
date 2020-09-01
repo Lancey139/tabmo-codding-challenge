@@ -119,9 +119,8 @@ Json::Value CampagnesManager::SelectCampagne(BidRequest& pBidRequest)
 	 * J'ai choisi d'intégrer un mutex a mes campagnes : on itère sur la liste des campagnes mais
 	 * on ne lock que la campagne en cours d'itération
 	 */
-	Json::Value lReturn;
-	vector<Json::Value> lCampagneSelectionnee;
-
+	vector<Campagne> lCampagnesSelectionnees;
+	Json::Value lJsonReturn;
 	for(vector<Campagne>::iterator itr = mListeCampagnes.begin(); itr != mListeCampagnes.end(); itr++ )
 	{
 		// Lock avec auto unlock quand on sort du scope
@@ -227,74 +226,102 @@ Json::Value CampagnesManager::SelectCampagne(BidRequest& pBidRequest)
 		if(lFiltreCompatible)
 		{
 			LOG_DEBUG << "Campagne compatible trouvée " << itr->GetId();
-			Json::Value lCampagne;
-			lCampagne["auctionId"] = pBidRequest.mId;
-			lCampagne["campaignId"] = itr->GetId();
-			lCampagne["url"] = itr->GetUrl();
-			// le prix est entre arrondi a 2 chiffres
-			stringstream stream;
-			stream << std::fixed << setprecision(2) << itr->GetBidPrice();
-			lCampagne["price"] = stream.str();
-
-			// TODO vérifier si JSON Value est movable sinon stocker autrement
-			lCampagneSelectionnee.push_back(lCampagne);
+			// Unlock pour laisser le constructeur par copie opérer
+			itr->GetMutex().unlock();
+			lCampagnesSelectionnees.push_back(*itr);
 		}
-
-		//itr->GetMutex().unlock();
 	}
 
 	/*
 	 * La liste des campagne compatible a été établie, on finalise le choix
 	 */
-	// Tirage de la campagne random si il y en a plusieurs
-	if(lCampagneSelectionnee.size() > 1)
-	{
-		// TODO Les impacts sur les performances sont à mesurer
-		// Creation d'un seeder
-		random_device lSeeder;
-		// Le mersenne twister engine est en charge grace au seeder de générer le nombre aléatoire
-		// La séquence ne se reproduira qu'apres 2 puissance 19937 donc tres bonne disbution
-		mt19937 lGenerateur(lSeeder());
-		uniform_int_distribution<int> lDistribution(0, lCampagneSelectionnee.size()-1);
-		int random = lDistribution(lGenerateur);
 
-		lReturn = lCampagneSelectionnee[random];
-	}
-	else if (lCampagneSelectionnee.size() == 1)
-	{
-		lReturn = lCampagneSelectionnee[0];
-	}
-
-	// TODO Bonus
-	/*
-	 * On retire l'argent de la campagne qui a payé l'emplacement
-	 */
 	// Si une campagne a été trouvée
-	if(lReturn.size() > 0)
+	if(lCampagnesSelectionnees.size() > 0)
 	{
+		// Tirage de la campagne random si il y en a plusieurs
+		Campagne lCampagne = RandomSelectCampagne(lCampagnesSelectionnees);
+		lJsonReturn = CreerJsonFromCampagne(lCampagne, pBidRequest);
+		/*
+		 * On retire l'argent de la campagne qui a payé l'emplacement
+		 */
 		mAccesCampagnes.lock();
-		vector<Campagne>::iterator lIterator = find_if(mListeCampagnes.begin(), mListeCampagnes.end(), [&lReturn](Campagne& pCampagne){
-			return lReturn["campaignId"].asString().compare(pCampagne.GetId()) == 0;
+		vector<Campagne>::iterator lIterator = find_if(mListeCampagnes.begin(), mListeCampagnes.end(), [&lCampagne](Campagne& pCampagne){
+			return lCampagne.GetId().compare(pCampagne.GetId()) == 0;
 		});
 		if (lIterator != mListeCampagnes.end())
 		{
 			LOG_DEBUG << "Campagne selectionnée !! " << lIterator->ToString();
 			if(!lIterator->DecrementeBudget())
 			{
-				LOG_ERROR << "Erreur critique, une campagne a été sélectionnée mais son budget est insuffisant La requete est ignorée";
-				lReturn = Json::Value();
+				throw logic_error("Erreur critique, une campagne a été sélectionnée mais son budget est insuffisant La requete est ignorée");
 			}
 		}
 		else
 		{
-			LOG_ERROR << "Erreur critique, une campagne a été sélectionnée mais son budget n'a pas pu être mis à jour. La requete est ignorée";
-			lReturn = Json::Value();
+			throw logic_error("Erreur critique, une campagne a été sélectionnée mais son budget n'a pas pu être mis à jour. La requete est ignorée");
 
 		}
 		mAccesCampagnes.unlock();
 	}
 
-	return lReturn;
+	return lJsonReturn;
+}
+
+Campagne CampagnesManager::RandomSelectCampagne(vector<Campagne>& pCampagnesSelectionnees)
+{
+	/*
+	 * Afin de réaliser l'objectif bonus, la stratégie suivante est appliquée :
+	 * On calcule en pourcentage le budget des campagnes sélectionées. Il représentera
+	 * les chances d'être choisi. On tire un nombre entre 0 et 100 puis on choisit la campagne
+	 * en fonction de ce nombre
+	*/
+	if (pCampagnesSelectionnees.size() == 1)
+	{
+		return pCampagnesSelectionnees[0];
+	}
+
+	// TODO Les impacts sur les performances sont à mesurer
+
+	// Creation d'un seeder
+	random_device lSeeder;
+	// Le mersenne twister engine est en charge grace au seeder de générer le nombre aléatoire
+	// La séquence ne se reproduira qu'apres 2 puissance 19937 donc tres bonne disbution
+	mt19937 lGenerateur(lSeeder());
+	uniform_int_distribution<int> lDistribution(0, 100);
+	float lRandom = (float)lDistribution(lGenerateur);
+
+	/*
+	 * Calcul de la pondération en % de chaque campagne
+	 */
+	vector<float> lVecteurPonderation;
+	int lSommeBudget = 0;
+	for_each(pCampagnesSelectionnees.begin(), pCampagnesSelectionnees.end(), [&lVecteurPonderation, &lSommeBudget](Campagne pCampagne){
+		lVecteurPonderation.push_back((float)pCampagne.GetBudget());
+		lSommeBudget += pCampagne.GetBudget();
+	});
+
+	// On multiplie par 100 puis divise par budget total pour obtenir les %
+	int lIndexSelectionne = 0;
+	for(int i=0; i < lVecteurPonderation.size(); i++)
+	{
+		lVecteurPonderation[i] = (lVecteurPonderation[i] / lSommeBudget) * 100 ;
+		// La campagne a de 0 à pPonderation % de chance detre choisie
+		if(lRandom <= lVecteurPonderation[i])
+		{
+			// La campagne est choisie
+			lIndexSelectionne = i;
+			break;
+		}
+		else
+		{
+			// On réduit le scope de choix pour la prochaine itération
+			// [0 ; 100 - P1]
+			lRandom -= lVecteurPonderation[i];
+		}
+	}
+
+	return pCampagnesSelectionnees[lIndexSelectionne];
 }
 
 int CampagnesManager::GetCampagnesCount()
@@ -303,6 +330,20 @@ int CampagnesManager::GetCampagnesCount()
 	int lTaille = mListeCampagnes.size();
 	mAccesCampagnes.unlock();
 	return lTaille;
+}
+
+Json::Value CampagnesManager::CreerJsonFromCampagne(Campagne& pCampagne, BidRequest& pBidRequest)
+{
+	Json::Value lCampagne;
+	lCampagne["auctionId"] = pBidRequest.mId;
+	lCampagne["campaignId"] = pCampagne.GetId();
+	lCampagne["url"] = pCampagne.GetUrl();
+	// le prix est entre arrondi a 2 chiffres
+	stringstream stream;
+	stream << std::fixed << setprecision(2) << pCampagne.GetBidPrice();
+	lCampagne["price"] = stream.str();
+
+	return lCampagne;
 }
 
 map<string, vector<string>> CampagnesManager::GetFilterFromItr(Json::ValueIterator& pItr, string pFilterType)
