@@ -5,6 +5,7 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
+	LOG_INFO << "Demarrage de l'application";
 	if(!CampagnesManager::ParseCampagnesFromJson("./res/campaigns.json"))
 	{
 		LOG_ERROR << "Au moins l'une des campagnes est invalide";

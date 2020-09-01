@@ -55,7 +55,9 @@ Campagne::Campagne(string pId, float pBudget, float pBidPrice, int pWidth, int p
 
 Campagne::Campagne(const Campagne& pCampagne)
 {
-	pCampagne.mMutex.lock();
+	// Utilisation d'un std::lock pour lock les 2 mutex en meme temps
+	// sans risquer un deadlock
+	lock(pCampagne.mMutex, mMutex);
 
 	mId = pCampagne.mId;
 	mBudget = pCampagne.mBudget;
@@ -68,11 +70,12 @@ Campagne::Campagne(const Campagne& pCampagne)
 	mUrl = pCampagne.mUrl;
 
 	pCampagne.mMutex.unlock();
+	mMutex.unlock();
 }
 
 Campagne::Campagne(Campagne&& pCampagne)
 {
-	pCampagne.mMutex.lock();
+	lock(pCampagne.mMutex, mMutex);
 
 	mId = move(pCampagne.mId);
 	mBudget = move(pCampagne.mBudget);
@@ -85,11 +88,12 @@ Campagne::Campagne(Campagne&& pCampagne)
 	mUrl = move(pCampagne.mUrl);
 
 	pCampagne.mMutex.unlock();
+	mMutex.unlock();
 }
 
 Campagne& Campagne::operator = (const Campagne& pCampagne)
 {
-	pCampagne.mMutex.lock();
+	lock(pCampagne.mMutex, mMutex);
 
 	mId = pCampagne.mId;
 	mBudget = pCampagne.mBudget;
@@ -102,13 +106,14 @@ Campagne& Campagne::operator = (const Campagne& pCampagne)
 	mUrl = pCampagne.mUrl;
 
 	pCampagne.mMutex.unlock();
+	mMutex.unlock();
 
 	return *this;
 }
 
 Campagne& Campagne::operator = (Campagne&& pCampagne)
 {
-	pCampagne.mMutex.lock();
+	lock(pCampagne.mMutex, mMutex);
 
 	mId = move(pCampagne.mId);
 	mBudget = move(pCampagne.mBudget);
@@ -121,6 +126,7 @@ Campagne& Campagne::operator = (Campagne&& pCampagne)
 	mUrl = move(pCampagne.mUrl);
 
 	pCampagne.mMutex.unlock();
+	mMutex.unlock();
 
 	return *this;
 }
