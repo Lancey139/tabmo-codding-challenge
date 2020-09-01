@@ -8,57 +8,70 @@
 #pragma once
 #include <string>
 #include <mutex>
+#include <map>
+#include <vector>
+
+using namespace std;
 
 /*
- * Structure de données permettant de stocker les informations relatives à une campagne
+ * classe permettant de stocker les informations relatives à une campagne
  * Tous les éléments sauf le Budget sont constants afin qu'on ne puisse pas les modifier
  */
-struct Campagne
+class Campagne
 {
-	const string mId;
-	float  mBudget;
-	const float mBidPrice;
-	const int mWidth;
-	const int mHeight;
-	const bool mResponsive;
-	const map<string,vector<string>> mFilterInclude;
-	const map<string,vector<string>> mFilterExlude;
-	const string mUrl;
-
+public:
+	/*
+	 * Constructeur
+	 */
 	Campagne(string pId, float pBudget, float pBidPrice, int pWidth, int pHeight,
 			bool pResponsive, map<string,vector<string>> pFilterInclude,
-			map<string,vector<string>> pFilterExclude, string pUrl):
-				mId(pId), mBudget(pBudget), mBidPrice(pBidPrice), mWidth(pWidth), mHeight(pHeight),
-				mResponsive(pResponsive), mFilterInclude(pFilterInclude), mFilterExlude(pFilterExclude), mUrl(pUrl)
-	{
-		// On vérifie que les valeurs requises sont différentes de la valeur donnée par défaut par le parseur JSON en cas
-		// de non précense d'une des balises obligatoires
-		if(pId.empty() ||
-			pBudget == 0 ||
-			pBidPrice == 0 ||
-			pWidth == 0 ||
-			pHeight == 0 ||
-			pUrl.empty()
-			)
-		{
-			throw invalid_argument("L'une des données obligatoires de la campagne est invalide, la requete est ignorée");
-		}
-		// TODO : Vérification des nombres d'éléments dans les filters
-		// TODO : Vérification si un filtre est dans include, il peut pas etre dans exclude
-		// TODO : Controle des mins / maxs
-	}
+			map<string,vector<string>> pFilterExclude, string pUrl);
 
-	string ToString()
-	{
-		string lReturn;
-		lReturn += "Information sur la campagne " + mId + "\n";
-		lReturn += " ** mBudget " + to_string(mBudget) + "\n";
-		lReturn += " ** mBidPrice " + to_string(mBidPrice) + "\n";
-		lReturn += " ** mWidth " + to_string(mWidth) + "\n";
-		lReturn += " ** mHeight " + to_string(mHeight) + "\n";
-		lReturn += " ** mResponsive " + to_string(mResponsive) + "\n";
-		lReturn += " ** mUrl " + mUrl + "\n";
+	/*
+	 * Constructeur par copie
+	 * @param pCampagne : Campagne à copier
+	 */
+	Campagne(const Campagne& pCampagne);
 
-		return lReturn;
-	}
+	/*
+	 * Méthode permettant d'afficher la plupart des attributs
+	 * @return : string
+	 */
+	string ToString();
+
+	/*
+	 * Getter
+	 */
+	 const string& GetId() const  { return mId; }
+	 const float& GetBudget() const  { return mBudget; }
+	 const float& GetBidPrice() const  { return mBidPrice; }
+	 const int& GetWidth() const  { return mWidth; }
+	 const int& GetHeight() const  { return mHeight; }
+	 const bool& GetResponsive() const  { return mResponsive; }
+	 const map<string,vector<string>>& GetFilterInclude() const  { return mFilterInclude; }
+	 const map<string,vector<string>>& GetFilterExclude() const  { return mFilterExlude; }
+	 const string& GetUrl() const  { return mUrl; }
+	 mutex& GetMutex() { return mMutex; }
+
+	 /*
+	  * Setter
+	  */
+	 bool DecrementeBudget();
+
+private:
+	 // Attributs permettant de stocker les valeurs issues du JSON
+	string mId;
+	float  mBudget;
+	float mBidPrice;
+	int mWidth;
+	int mHeight;
+	bool mResponsive;
+	string mUrl;
+	// Ces maps permettant de strocker les valeurs des filtres
+	map<string,vector<string>> mFilterInclude;
+	map<string,vector<string>> mFilterExlude;
+	// Attribut permettant lors de la sélection d'une campagne de rester thread safe
+	// sans bloquer tout le vecteur de campagne
+	mutable mutex mMutex;
+
 };

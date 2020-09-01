@@ -1,13 +1,14 @@
 #include <drogon/HttpAppFramework.h>
-#include "Campagnes.h"
+
+#include "CampagnesManager.h"
 using namespace std;
 
 int main(int argc, char **argv)
 {
-	if(!Campagnes::ParseCampagnesFromJson("./res/campaigns.json"))
+	if(!CampagnesManager::ParseCampagnesFromJson("./res/campaigns.json"))
 	{
 		LOG_ERROR << "Au moins l'une des campagnes est invalide";
-		if(Campagnes::GetCampagnesCount() == 0)
+		if(CampagnesManager::GetCampagnesCount() == 0)
 		{
 			LOG_ERROR << "Aucune campagne valide n'a été trouvée, arrêt de l'application";
 			exit(1);

@@ -4,6 +4,8 @@
  *  Created on: 30 août 2020
  *      Author: Nicolas MEO
  */
+#include "CampagnesManager.h"
+
 #include <drogon/drogon.h>
 #include <fstream>
 #include <vector>
@@ -13,27 +15,18 @@
 #include <random>
 #include <math.h>
 #include <iomanip>
+#include <thread>
 
-#include "Campagnes.h"
 #include "Campagne.h"
 
 using namespace std;
 
-vector<Campagne> Campagnes::mListeCampagnes;
-mutex Campagnes::mAccesCampagnes;
-vector<mutex> Campagnes::mListeMutex;
-
-Campagnes::Campagnes() {
-	// TODO Auto-generated constructor stub
-
-}
-
-Campagnes::~Campagnes() {
-	// TODO Auto-generated destructor stub
-}
+vector<Campagne> CampagnesManager::mListeCampagnes;
+mutex CampagnesManager::mAccesCampagnes;
+vector<mutex> CampagnesManager::mListeMutex;
 
 
-bool Campagnes::ParseCampagnesFromJson(string pCheminVersJson)
+bool CampagnesManager::ParseCampagnesFromJson(string pCheminVersJson)
 {
 	Json::Reader lJsonReader;
 	Json::Value lJsonValue;
@@ -80,16 +73,11 @@ bool Campagnes::ParseCampagnesFromJson(string pCheminVersJson)
 							lExcludeFilter,
 							(*itr)["url"].asString());
 
-	        		// En thérorie a ce stade de l'execution 1 seul thread travaille
+	        		// En théorie a ce stade de l'execution 1 seul thread travaille
 	        		// On prend tout de meme le lock par précaution
 	        		mAccesCampagnes.lock();
 	        		mListeCampagnes.push_back(lCampagne);
-	        		// TODO
-	        		//mutex lMutex;
-	        		//mListeMutex.push_back(lMutex);
 	        		mAccesCampagnes.unlock();
-
-	        		//LOG_DEBUG << "CAMPAGNE INFO " << lCampagne.ToString();
 	        	}
 	        	// Cas ou une mauvaise valeur a été entrée dans le JSON
 	    		catch(Json::LogicError &JsonExcept)
@@ -126,36 +114,32 @@ bool Campagnes::ParseCampagnesFromJson(string pCheminVersJson)
 }
 
 
-Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
+Json::Value CampagnesManager::SelectCampagne(BidRequest& pBidRequest)
 {
 	/*
 	 * Afin que cette méthode reste ThreadSafe mais qu'elle soit également perfomante
-	 * J'ai choisi d'utiliser un tableau de mutex : on itère sur la liste des campagnes mais
+	 * J'ai choisi d'intégrer un mutex a mes campagnes : on itère sur la liste des campagnes mais
 	 * on ne lock que la campagne en cours d'itération
-	 * Il n'est pas nécessaire de locker pour la première boucle for car on ne va pas dans cette méthode
-	 * Réallouer des ressources. Ainsi on peut se permettre de ne locker que les items Campagne
-	 * TODO
 	 */
 	Json::Value lReturn;
 	vector<Json::Value> lCampagneSelectionnee;
-	mAccesCampagnes.lock();
+
 	for(vector<Campagne>::iterator itr = mListeCampagnes.begin(); itr != mListeCampagnes.end(); itr++ )
 	{
-		/*
-		 * Vérification de la compatibilité de la campagne
-		 */
+		itr->GetMutex().lock();
+
 		bool lFiltreCompatible = true;
 		/*
 		 * Vérifiation de la taille
 		 */
-		lFiltreCompatible = pBidRequest.mDeviceH == itr->mHeight && pBidRequest.mDeviceW == itr->mWidth;
+		lFiltreCompatible = pBidRequest.mDeviceH == itr->GetHeight() && pBidRequest.mDeviceW == itr->GetWidth();
 
 		// En cas de non compatibilité, on vérifie si la campagne est responsive
-		if(!lFiltreCompatible && itr->mResponsive)
+		if(!lFiltreCompatible && itr->GetResponsive())
 		{
 			// Dans ce cas les ratio doivent correspondre (static cast des int)
 			// pas de vérification dénominateur != 0 car toutes les vérifis ont été faites en amont
-			lFiltreCompatible = (float)pBidRequest.mDeviceH / (float)pBidRequest.mDeviceW == (float)itr->mHeight / (float)itr->mWidth;
+			lFiltreCompatible = (float)pBidRequest.mDeviceH / (float)pBidRequest.mDeviceW == (float)itr->GetHeight() / (float)itr->GetWidth();
 		}
 
 		/*
@@ -164,7 +148,7 @@ Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
 		 * et le bid-price doit être supérieur au bid-floor
 		 */
 		if(lFiltreCompatible)
-			lFiltreCompatible = itr->mBudget >= itr->mBidPrice && itr->mBidPrice >= pBidRequest.mBidFloor;
+			lFiltreCompatible = itr->GetBudget() >= itr->GetBidPrice() && itr->GetBidPrice() >= pBidRequest.mBidFloor;
 
 		/*
 		 * Vérification des filtres
@@ -173,22 +157,22 @@ Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
 		/*
 		 * LANGUES
 		 */
-		// On commence par passer la langue dans la requete en minuscule
 		if(lFiltreCompatible)
 		{
+			// On commence par passer la langue dans la requete en minuscule
 			for_each(pBidRequest.mDeviceLang.begin(), pBidRequest.mDeviceLang.end(), [](char& c){c = tolower(c);});
 
 			auto lLambdaLang = [&pBidRequest](string filterValue){
 						return pBidRequest.mDeviceLang.compare(filterValue) == 0;
 					};
 			// Pas de vérification sur mDeviceLang ici car déjà vérifier à l'arriver de la requete
-			if( itr->mFilterInclude.count("language") > 0)
-				lFiltreCompatible =  find_if(itr->mFilterInclude.at("language").begin(), itr->mFilterInclude.at("language").end(), lLambdaLang) !=
-						itr->mFilterInclude.at("language").end();
+			if( itr->GetFilterInclude().count("language") > 0)
+				lFiltreCompatible =  find_if(itr->GetFilterInclude().at("language").begin(), itr->GetFilterInclude().at("language").end(), lLambdaLang) !=
+						itr->GetFilterInclude().at("language").end();
 
-			if( lFiltreCompatible && itr->mFilterExlude.count("language") > 0)
-				lFiltreCompatible =  find_if(itr->mFilterExlude.at("language").begin(), itr->mFilterExlude.at("language").end(), lLambdaLang) ==
-						itr->mFilterExlude.at("language").end();
+			if( lFiltreCompatible && itr->GetFilterExclude().count("language") > 0)
+				lFiltreCompatible =  find_if(itr->GetFilterExclude().at("language").begin(), itr->GetFilterExclude().at("language").end(), lLambdaLang) ==
+						itr->GetFilterExclude().at("language").end();
 		}
 		/*
 		 * Nom de l'application
@@ -198,27 +182,24 @@ Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
 			auto lLambdaApp = [&pBidRequest](string filterValue){
 						return pBidRequest.mAppName.find(filterValue) != string::npos;
 					};
-			// Vérification de la précense du app name
-
-			if( lFiltreCompatible && itr->mFilterInclude.count("application") > 0)
+			if( lFiltreCompatible && itr->GetFilterInclude().count("application") > 0)
 			{
 				lFiltreCompatible = !pBidRequest.mAppName.empty() &&
-						find_if(itr->mFilterInclude.at("application").begin(), itr->mFilterInclude.at("application").end(), lLambdaApp) !=
-						itr->mFilterInclude.at("application").end();
+						find_if(itr->GetFilterInclude().at("application").begin(), itr->GetFilterInclude().at("application").end(), lLambdaApp) !=
+						itr->GetFilterInclude().at("application").end();
 			}
 
-			if( lFiltreCompatible && itr->mFilterExlude.count("application") > 0)
+			if( lFiltreCompatible && itr->GetFilterExclude().count("application") > 0)
 			{
 				lFiltreCompatible =  !pBidRequest.mAppName.empty() &&
-						find_if(itr->mFilterExlude.at("application").begin(), itr->mFilterExlude.at("application").end(), lLambdaApp) ==
-						itr->mFilterExlude.at("application").end();
+						find_if(itr->GetFilterExclude().at("application").begin(), itr->GetFilterExclude().at("application").end(), lLambdaApp) ==
+						itr->GetFilterExclude().at("application").end();
 			}
 		}
 
 		/*
 		 * IFA
 		 */
-		// On commence par passer la langue dans la requete en minuscule
 		if(lFiltreCompatible)
 		{
 			for_each(pBidRequest.mDeviceIfa.begin(), pBidRequest.mDeviceIfa.end(), [](char& c){c = tolower(c);});
@@ -227,18 +208,18 @@ Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
 						return pBidRequest.mDeviceIfa.compare(filterValue) == 0;
 					};
 
-			if( lFiltreCompatible && itr->mFilterInclude.count("ifa") > 0)
+			if( lFiltreCompatible && itr->GetFilterInclude().count("ifa") > 0)
 			{
 				lFiltreCompatible =  !pBidRequest.mDeviceIfa.empty() &&
-						find_if(itr->mFilterInclude.at("ifa").begin(), itr->mFilterInclude.at("ifa").end(), lLambdaIFA) !=
-						itr->mFilterInclude.at("ifa").end();
+						find_if(itr->GetFilterInclude().at("ifa").begin(), itr->GetFilterInclude().at("ifa").end(), lLambdaIFA) !=
+						itr->GetFilterInclude().at("ifa").end();
 			}
 
-			if( lFiltreCompatible && itr->mFilterExlude.count("ifa") > 0)
+			if( lFiltreCompatible && itr->GetFilterExclude().count("ifa") > 0)
 			{
 				lFiltreCompatible =  !pBidRequest.mDeviceIfa.empty() &&
-						find_if(itr->mFilterExlude.at("ifa").begin(), itr->mFilterExlude.at("ifa").end(), lLambdaIFA) ==
-						itr->mFilterExlude.at("ifa").end();
+						find_if(itr->GetFilterExclude().at("ifa").begin(), itr->GetFilterExclude().at("ifa").end(), lLambdaIFA) ==
+						itr->GetFilterExclude().at("ifa").end();
 			}
 		}
 		/*
@@ -246,22 +227,23 @@ Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
 		 */
 		if(lFiltreCompatible)
 		{
-			LOG_WARN << "Campagne compatible trouvée " << itr->mId;
+			LOG_DEBUG << "Campagne compatible trouvée " << itr->GetId();
 			Json::Value lCampagne;
 			lCampagne["auctionId"] = pBidRequest.mId;
-			lCampagne["campaignId"] = itr->mId;
-			lCampagne["url"] = itr->mUrl;
-			// le prix est entree arrondi a 2 chiffres
+			lCampagne["campaignId"] = itr->GetId();
+			lCampagne["url"] = itr->GetUrl();
+			// le prix est entre arrondi a 2 chiffres
 			stringstream stream;
-			stream << std::fixed << setprecision(2) << itr->mBidPrice;
+			stream << std::fixed << setprecision(2) << itr->GetBidPrice();
 			lCampagne["price"] = stream.str();
 
 			// TODO vérifier si JSON Value est movable sinon stocker autrement
 			lCampagneSelectionnee.push_back(lCampagne);
 		}
 
+		itr->GetMutex().unlock();
 	}
-	mAccesCampagnes.unlock();
+
 	/*
 	 * La liste des campagne compatible a été établie, on finalise le choix
 	 */
@@ -293,12 +275,16 @@ Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
 	{
 		mAccesCampagnes.lock();
 		vector<Campagne>::iterator lIterator = find_if(mListeCampagnes.begin(), mListeCampagnes.end(), [&lReturn](Campagne& pCampagne){
-			return lReturn["campaignId"].asString().compare(pCampagne.mId) == 0;
+			return lReturn["campaignId"].asString().compare(pCampagne.GetId()) == 0;
 		});
 		if (lIterator != mListeCampagnes.end())
 		{
-			lIterator->mBudget -= lIterator->mBidPrice;
-			LOG_WARN << "Campagne selectionnée !! " << lIterator->ToString();
+			LOG_DEBUG << "Campagne selectionnée !! " << lIterator->ToString();
+			if(!lIterator->DecrementeBudget())
+			{
+				LOG_ERROR << "Erreur critique, une campagne a été sélectionnée mais son budget est insuffisant La requete est ignorée";
+				lReturn = Json::Value();
+			}
 		}
 		else
 		{
@@ -312,7 +298,7 @@ Json::Value Campagnes::SelectCampagne(BidRequest& pBidRequest)
 	return lReturn;
 }
 
-int Campagnes::GetCampagnesCount()
+int CampagnesManager::GetCampagnesCount()
 {
 	mAccesCampagnes.lock();
 	int lTaille = mListeCampagnes.size();
@@ -320,7 +306,7 @@ int Campagnes::GetCampagnesCount()
 	return lTaille;
 }
 
-map<string, vector<string>> Campagnes::GetFilterFromItr(Json::ValueIterator& pItr, string pFilterType)
+map<string, vector<string>> CampagnesManager::GetFilterFromItr(Json::ValueIterator& pItr, string pFilterType)
 {
 	map<string, vector<string>> lMapFilters;
 

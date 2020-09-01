@@ -19,10 +19,10 @@ using namespace std;
 /*
  * Classe Campagnes contenant toutes les méthodes visant à manipuler les campagnes
  */
-class Campagnes {
+class CampagnesManager {
 	public:
-		Campagnes();
-		virtual ~Campagnes();
+		CampagnesManager();
+		virtual ~CampagnesManager();
 
 		/*
 		 * Methode permettant de remplir le vecteur de campagne avec un JSON

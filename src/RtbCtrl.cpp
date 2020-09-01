@@ -8,7 +8,7 @@
 
 #include "RtbCtrl.h"
 #include "BidRequest.h"
-#include "Campagnes.h"
+#include "CampagnesManager.h"
 
 using namespace std;
 
@@ -55,7 +55,7 @@ void RtbCtrl::asyncHandleHttpRequest(const HttpRequestPtr &req,
 		{
 			LOG_DEBUG << "Données valides reçues" << lBidRequest.mId;
 			// Sélection de la campagne
-			lResult = Campagnes::SelectCampagne(lBidRequest);
+			lResult = CampagnesManager::SelectCampagne(lBidRequest);
 		}
 		else
 		{
