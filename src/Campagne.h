@@ -16,6 +16,7 @@ using namespace std;
 /*
  * classe permettant de stocker les informations relatives à une campagne
  * Tous les éléments sauf le Budget sont constants afin qu'on ne puisse pas les modifier
+ * Cette objet contenant un mutex, les méthodes ont été implémentées pour le rendre movable
  */
 class Campagne
 {
@@ -32,6 +33,21 @@ public:
 	 * @param pCampagne : Campagne à copier
 	 */
 	Campagne(const Campagne& pCampagne);
+
+	/*
+	 * Constructeur par move
+	 */
+	Campagne(Campagne&& pCampagne);
+
+	/*
+	 * Assignation par Copie
+	 */
+	Campagne& operator = (const Campagne& pCampagne);
+
+	/*
+	 * Assignation par move
+	 */
+	Campagne& operator = (Campagne&& pCampagne);
 
 	/*
 	 * Méthode permettant d'afficher la plupart des attributs

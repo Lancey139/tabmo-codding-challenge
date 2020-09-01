@@ -82,18 +82,16 @@ bool CampagnesManager::ParseCampagnesFromJson(string pCheminVersJson)
 	        	// Cas ou une mauvaise valeur a été entrée dans le JSON
 	    		catch(Json::LogicError &JsonExcept)
 	    		{
-	    			LOG_WARN << "La campagne " << (*itr)["id"].asString() << "n'a pas pu être ajoutée : JSON invalide";
-	    			LOG_WARN << JsonExcept.what();
+	    			LOG_ERROR << "La campagne " << (*itr)["id"].asString() << " n'a pas pu être ajoutée : JSON invalide";
+	    			LOG_ERROR << JsonExcept.what();
 	    			lReturn = false;
 	    		}
 	        	// Cas ou une mauvaise valeur a été entrée dans l'un des floats
 	    		// ou une des valeurs obligatoire n'est pas renseignée dans la campagne
 	    		catch(invalid_argument &invalid)
 	    		{
-	    			LOG_WARN << "La campagne " << (*itr)["id"].asString() << "n'a pas pu être ajoutée pour l'une des raison suivante";
-	    			LOG_WARN << " - L'une des valeurs obligatoires n'est pas renseignée";
-	    			LOG_WARN << " - Les valeurs budget ou bidprice sont invalides";
-	    			LOG_WARN << invalid.what();
+	    			LOG_ERROR << "La campagne " << (*itr)["id"].asString() << " n'a pas pu être ajoutée";
+	    			LOG_ERROR << invalid.what();
 	    			lReturn = false;
 	    		}
 	        }
