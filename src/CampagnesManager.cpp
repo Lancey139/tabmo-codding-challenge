@@ -126,7 +126,8 @@ Json::Value CampagnesManager::SelectCampagne(BidRequest& pBidRequest)
 
 	for(vector<Campagne>::iterator itr = mListeCampagnes.begin(); itr != mListeCampagnes.end(); itr++ )
 	{
-		itr->GetMutex().lock();
+		// Lock avec auto unlock quand on sort du scope
+		lock_guard<mutex> lock(itr->GetMutex());
 
 		bool lFiltreCompatible = true;
 		/*
@@ -241,7 +242,7 @@ Json::Value CampagnesManager::SelectCampagne(BidRequest& pBidRequest)
 			lCampagneSelectionnee.push_back(lCampagne);
 		}
 
-		itr->GetMutex().unlock();
+		//itr->GetMutex().unlock();
 	}
 
 	/*
