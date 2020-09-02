@@ -49,18 +49,18 @@ L'application se lance. Les paramètres par défaut pricipaux sont les suivants:
 
 Afin de les modifier, se référer à la section configuration de l'application de ce README
 
-## Avec Docker
+## Avec Docker
 
 TODO
 
 # Configuration de l'application
 
-La configuration de l'application se déroule dans le dossier build/default/res.
+La configuration de l'application se déroule dans le dossier **build/default/res**.
 2 fichiers sont configurables :
 * **campaigns.json** : Contient les campagnes fournies dans l'énoncé de l'exercice
 * **config.drogon.json** : Contient toutes les configurations liées au framework Drogo
 
-Le dossier bid-requests contient les 3 bid-requests fournies dans l'énoncé avec un script bash permettant de les lancer 400 fois chacunes. Ce script est notament utilise pour tester la distribution des campagnes selectionnées aléatoirement mais pondérées par leur budget.
+Le dossier bid-requests contient les 3 bid-requests fournies dans l'énoncé avec un script bash **stress-app.bash** permettant de les lancer 400 fois chacunes via curl. Ce script est notament utile pour tester la distribution des campagnes selectionnées aléatoirement (pondérées par leur budget).
 
 
 
