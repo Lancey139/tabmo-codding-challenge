@@ -39,13 +39,20 @@ class CampagnesManager {
 		static Json::Value  SelectCampagne(BidRequest& pBidRequest);
 
 		/*
+		 * Methode permettant d'obtenir le nombre de campagne parsée
+		 * @return : Nombre de campagne parsée
+		 */
+		static int GetCampagnesCount();
+
+	private:
+		/*
 		 * Methode permettant de realiser la selection finale de la campagne.
 		 * Si plusieurs campagnes sont compatibles, l'une d'entre elle est tirée au sort.
 		 * Le tirage au sort est pondéré par le budget restant de la campagne
 		 * @param pCampagnesSelectionnees : Vecteur des campagnes compatibles
 		 * @ return &Json::Value : la campagne sélectionnée
 		 */
-		static Campagne RandomSelectCampagne(vector<Campagne>& pCampagnesSelectionnees);
+		static Campagne* RandomSelectCampagne(vector<Campagne*>& pCampagnesSelectionnees);
 
 		/*
 		 * Methode permettant de créé le Json de retour a partir d'une campagne
@@ -53,15 +60,8 @@ class CampagnesManager {
 		 * @param pBidRequest : requete en cours
 		 * @ return Json::Value : la campagne sélectionnée
 		 */
-		static Json::Value CreerJsonFromCampagne(Campagne& pCampagne, BidRequest& pBidRequest);
+		static Json::Value CreerJsonFromCampagne(Campagne* pCampagne, BidRequest& pBidRequest);
 
-		/*
-		 * Methode permettant d'obtenir le nombre de campagne parsée
-		 * @return : Nombre de campagne parsée
-		 */
-		static int GetCampagnesCount();
-
-	private:
 		// L'attribut statique mListeCampagnes permet de stocker l'ensemble des campagnes parsées dans le JSON
 		static vector<Campagne> mListeCampagnes;
 		// L'attribut mAccesCampagnes permet de sécuriser l'accès à mListeCampagne en cas de modification du vecteur

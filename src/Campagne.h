@@ -68,6 +68,7 @@ public:
 	 const map<string,vector<string>>& GetFilterExclude() const  { return mFilterExlude; }
 	 const string& GetUrl() const  { return mUrl; }
 	 mutex& GetMutex() { return mMutex; }
+	 Campagne* GetPointeur() {return this;}
 
 	 /*
 	  * Setter
