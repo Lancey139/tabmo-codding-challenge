@@ -53,7 +53,7 @@ void RtbCtrl::asyncHandleHttpRequest(const HttpRequestPtr &req,
 		 */
 		if(!lBidRequest.mId.empty() && !lBidRequest.mDeviceLang.empty() && lBidRequest.mBidFloor != 0 && lBidRequest.mDeviceW != 0 && lBidRequest.mDeviceH !=0)
 		{
-			LOG_DEBUG << "Données valides reçues" << lBidRequest.mId;
+			LOG_DEBUG << "Données valides reçues " << lBidRequest.mId;
 			try{
 				// Sélection de la campagne
 				lResult = CampagnesManager::SelectCampagne(lBidRequest);

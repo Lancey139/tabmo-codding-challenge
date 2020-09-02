@@ -245,13 +245,14 @@ Json::Value CampagnesManager::SelectCampagne(BidRequest& pBidRequest)
 		/*
 		 * On retire l'argent de la campagne qui a payé l'emplacement
 		 */
-		mAccesCampagnes.lock();
+		lock_guard<mutex> lockListeCampagnes(mAccesCampagnes);
 		vector<Campagne>::iterator lIterator = find_if(mListeCampagnes.begin(), mListeCampagnes.end(), [&lCampagne](Campagne& pCampagne){
 			return lCampagne.GetId().compare(pCampagne.GetId()) == 0;
 		});
 		if (lIterator != mListeCampagnes.end())
 		{
 			LOG_DEBUG << "Campagne selectionnée !! " << lIterator->ToString();
+			lock_guard<mutex> lockCampagne(lIterator->GetMutex());
 			if(!lIterator->DecrementeBudget())
 			{
 				throw logic_error("Erreur critique, une campagne a été sélectionnée mais son budget est insuffisant La requete est ignorée");
@@ -262,7 +263,6 @@ Json::Value CampagnesManager::SelectCampagne(BidRequest& pBidRequest)
 			throw logic_error("Erreur critique, une campagne a été sélectionnée mais son budget n'a pas pu être mis à jour. La requete est ignorée");
 
 		}
-		mAccesCampagnes.unlock();
 	}
 
 	return lJsonReturn;
@@ -303,22 +303,18 @@ Campagne CampagnesManager::RandomSelectCampagne(vector<Campagne>& pCampagnesSele
 
 	// On multiplie par 100 puis divise par budget total pour obtenir les %
 	int lIndexSelectionne = 0;
+	float lProbaBrecedente = 0.;
 	for(int i=0; i < lVecteurPonderation.size(); i++)
 	{
 		lVecteurPonderation[i] = (lVecteurPonderation[i] / lSommeBudget) * 100 ;
-		// La campagne a de 0 à pPonderation % de chance detre choisie
-		if(lRandom <= lVecteurPonderation[i])
+		// Chaque campagne a une de [ lProbaBrecedente ; lProbaBrecedente + lVecteurPonderation[i] ] de chance d'être tirée
+		if(lRandom >= lProbaBrecedente && lRandom <= lProbaBrecedente + lVecteurPonderation[i])
 		{
 			// La campagne est choisie
 			lIndexSelectionne = i;
 			break;
 		}
-		else
-		{
-			// On réduit le scope de choix pour la prochaine itération
-			// [0 ; 100 - P1]
-			lRandom -= lVecteurPonderation[i];
-		}
+		lProbaBrecedente += lVecteurPonderation[i];
 	}
 
 	return pCampagnesSelectionnees[lIndexSelectionne];
