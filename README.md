@@ -25,26 +25,44 @@ Afin de compiler cette application, les paquets suivants doivent être installé
 * **zlib1g-dev** : sudo apt install zlib1g-dev
 * **Boost** : sudo apt install libboost-all-dev
 
-## Requirements à vérifier
-* sudo apt-get install postgresql-server-dev-all
-* sudo apt-get install postgresql-all
-* sudo apt install libmariadbclient-dev
-* sudo apt-get install libsqlite3-dev
-
 # Compilation du projet
-
-## Avec Docker
 
 ## Avec CMake
 
-Pour le moment, on a fait tout ce qu'il y a ci-dessous + intégration dans projet // à revoir !
->cd $WORK_PATH
-git clone https://github.com/an-tao/drogon
-cd drogon
-git submodule update --init
-mkdir build
-cd build
-cmake ..
-make && sudo make install
+Une fois toutes les dépendances installées, executer le script build.sh
+
+# Lancement de l'application
+
+## Manuel
+
+Pour lancer l'application, tapez les commandes suivantes 
+>cd build/defaut
+>./tabmo-codding-challenge
+
+L'application se lance. Les paramètres par défaut pricipaux sont les suivants:
+* IP : 127.0.0.1
+* Port : 8080
+* Protocole : HTTP
+* Nombre de thread : 3
+* Niveau de log : INFO
+* Chemin vers le dossier res : ./res
+
+Afin de les modifier, se référer à la section configuration de l'application de ce README
+
+## Avec Docker
+
+TODO
+
+# Configuration de l'application
+
+La configuration de l'application se déroule dans le dossier build/default/res.
+2 fichiers sont configurables :
+* **campaigns.json** : Contient les campagnes fournies dans l'énoncé de l'exercice
+* **config.drogon.json** : Contient toutes les configurations liées au framework Drogo
+
+Le dossier bid-requests contient les 3 bid-requests fournies dans l'énoncé avec un script bash permettant de les lancer 400 fois chacunes. Ce script est notament utilise pour tester la distribution des campagnes selectionnées aléatoirement mais pondérées par leur budget.
+
+
+
 
 

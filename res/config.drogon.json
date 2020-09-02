@@ -45,7 +45,7 @@
             "log_path": "./",            
             "logfile_base_name": "tabmo-coding-challenge",
             "log_size_limit": 100000000,
-            "log_level": "DEBUG"
+            "log_level": "INFO"
         },
         "run_as_daemon": false,
         "relaunch_on_error": false,
