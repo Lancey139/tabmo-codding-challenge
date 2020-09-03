@@ -29,7 +29,10 @@ Afin de compiler cette application, les paquets suivants doivent être installé
 
 ## Avec CMake
 
-Une fois toutes les dépendances installées, executer le script build.sh
+Une fois toutes les dépendances installées, executer le script :
+>./build.sh
+
+L'application est compilée en mode RELEASE.
 
 # Lancement de l'application
 
@@ -37,6 +40,7 @@ Une fois toutes les dépendances installées, executer le script build.sh
 
 Pour lancer l'application, tapez les commandes suivantes 
 >cd build/defaut
+
 >./tabmo-codding-challenge > parsing-campagne.log
 
 L'application se lance. Les paramètres par défaut pricipaux sont les suivants:

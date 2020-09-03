@@ -1,6 +1,5 @@
 #!/bin/sh
 
-mkdir install
 mkdir -p build/default
 cd build/default
 
