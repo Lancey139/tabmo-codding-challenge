@@ -35,9 +35,9 @@ L'application est compilée en mode RELEASE.
 # Lancement de l'application
 
 Pour lancer l'application, tapez les commandes suivantes 
->cd build/defaut
+>cd build/default
 
->./tabmo-codding-challenge > parsing-campagne.log
+>./tabmo-coding-challenge > parsing-campagne.log
 
 L'application se lance. Les paramètres par défaut pricipaux sont les suivants:
 * IP : 127.0.0.1
