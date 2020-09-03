@@ -17,6 +17,7 @@ void RtbCtrl::asyncHandleHttpRequest(const HttpRequestPtr &req,
 {
 	Json::Value lResult;
 	shared_ptr<Json::Value> lJsonData = req->getJsonObject();
+	bool lErreurParsing = false;
 	if(lJsonData)
 	{
 		/*
@@ -39,10 +40,12 @@ void RtbCtrl::asyncHandleHttpRequest(const HttpRequestPtr &req,
 		catch(Json::LogicError &JsonExcept)
 		{
 			LOG_WARN << JsonExcept.what();
+			lErreurParsing = true;
 		}
 		catch(exception &e)
 		{
 			LOG_WARN << e.what();
+			lErreurParsing = true;
 		}
 
 		/*
@@ -51,7 +54,7 @@ void RtbCtrl::asyncHandleHttpRequest(const HttpRequestPtr &req,
 		 * - mDeviceLang ne peut pas être null ou vide
 		 * - BidFloor DeviceW et H doivent être différent de 0 -> Json inscrit 0 si le noeud est inexistant
 		 */
-		if(!lBidRequest.mId.empty() && !lBidRequest.mDeviceLang.empty() && lBidRequest.mBidFloor != 0 && lBidRequest.mDeviceW != 0 && lBidRequest.mDeviceH !=0)
+		if(!lErreurParsing && !lBidRequest.mId.empty() && !lBidRequest.mDeviceLang.empty() && lBidRequest.mBidFloor != 0 && lBidRequest.mDeviceW != 0 && lBidRequest.mDeviceH !=0)
 		{
 			LOG_DEBUG << "Données valides reçues " << lBidRequest.mId;
 			try{
