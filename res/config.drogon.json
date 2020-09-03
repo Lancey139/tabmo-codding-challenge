@@ -43,7 +43,7 @@
         "enable_unicode_escaping_in_json": true,
         "log": {
             "log_path": "./",            
-            "logfile_base_name": "tabmo-coding-challenge",
+            "logfile_base_name": "rtb-request",
             "log_size_limit": 100000000,
             "log_level": "INFO"
         },

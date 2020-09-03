@@ -37,21 +37,20 @@ Une fois toutes les dépendances installées, executer le script build.sh
 
 Pour lancer l'application, tapez les commandes suivantes 
 >cd build/defaut
->./tabmo-codding-challenge
+>./tabmo-codding-challenge > parsing-campagne.log
 
 L'application se lance. Les paramètres par défaut pricipaux sont les suivants:
 * IP : 127.0.0.1
 * Port : 8080
 * Protocole : HTTP
-* Nombre de thread : 3
+* Nombre de threads : 3
 * Niveau de log : INFO
+* Fichier de logs : parsing-campagne.log et ./rtb-request.log
 * Chemin vers le dossier res : ./res
 
 Afin de les modifier, se référer à la section configuration de l'application de ce README
 
-## Avec Docker
-
-TODO
+**NB** : Pour des raisons techniques (drogo ne prend pas en compte son fichier de log avant d'avoir lancé le run) les logs liés au parsing des campagnes sortent dans le runtime. C'est pourquoi il est préconisé de lancer la commande ci-dessus
 
 # Configuration de l'application
 
