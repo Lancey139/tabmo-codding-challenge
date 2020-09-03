@@ -35,7 +35,7 @@ L'application est compilée en mode RELEASE.
 # Lancement de l'application
 
 Pour lancer l'application, tapez les commandes suivantes 
->cd build/defaut
+>cd build/default
 
 >./tabmo-codding-challenge > parsing-campagne.log
 
