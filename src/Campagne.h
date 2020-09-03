@@ -71,7 +71,8 @@ public:
 	 Campagne* GetPointeur() {return this;}
 
 	 /*
-	  * Setter
+	  * Méthode permettant de décrémenter le budget d'une campagne qui vient d'acheter une bid-request
+	  * @return : true si le budget a pu etre prélevé, false sinon
 	  */
 	 bool DecrementeBudget();
 

@@ -34,7 +34,7 @@ class CampagnesManager {
 		/*
 		 * Methode permettant a partir d'une BidRequest de determiner la campagne la plus adaptee
 		 * @param pBidRequest : La bid request obtenue à partir du JSON de la requete / Passée par référence pour éviter une copie
-		 * @return : Référence constante vers la campagne retenue
+		 * @return : Json::Value représentant la campagne retenue
 		 */
 		static Json::Value  SelectCampagne(BidRequest& pBidRequest);
 
@@ -50,12 +50,12 @@ class CampagnesManager {
 		 * Si plusieurs campagnes sont compatibles, l'une d'entre elle est tirée au sort.
 		 * Le tirage au sort est pondéré par le budget restant de la campagne
 		 * @param pCampagnesSelectionnees : Vecteur des campagnes compatibles
-		 * @ return &Json::Value : la campagne sélectionnée
+		 * @ return Campagne* : pointeur vers la campagne sélectionnée
 		 */
 		static Campagne* RandomSelectCampagne(vector<Campagne*>& pCampagnesSelectionnees);
 
 		/*
-		 * Methode permettant de créé le Json de retour a partir d'une campagne
+		 * Methode permettant de créer le Json de retour a partir d'une campagne
 		 * @param pCampagne : campagne à converttir en Json
 		 * @param pBidRequest : requete en cours
 		 * @ return Json::Value : la campagne sélectionnée

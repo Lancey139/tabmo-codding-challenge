@@ -48,9 +48,6 @@ bool CampagnesManager::ParseCampagnesFromJson(string pCheminVersJson)
 	        	try
 	        	{
 	        		// Avant de créer la campagne on pré-charge les vecteurs de filtre grace a la méthode privée associée
-	        		// Cette facon de procéder implique de copier la map des valeurs 2 fois (une par le return + une lors de la
-	        		// construction de l'objet.
-	        		// Ce code n'étant executer qu'une seule fois au démarage, ce problème est dépriorisé
 	        		map<string,vector<string>> lIncludeFilter;
 	        		map<string,vector<string>> lExcludeFilter;
 
@@ -226,8 +223,6 @@ Json::Value CampagnesManager::SelectCampagne(BidRequest& pBidRequest)
 		if(lFiltreCompatible)
 		{
 			LOG_DEBUG << "Campagne compatible trouvée " << itr->GetId();
-			// Unlock pour laisser le constructeur par copie opérer
-			itr->GetMutex().unlock();
 			lCampagnesSelectionnees.push_back(itr->GetPointeur());
 		}
 	}
@@ -267,8 +262,6 @@ Campagne* CampagnesManager::RandomSelectCampagne(vector<Campagne*>& pCampagnesSe
 	{
 		return pCampagnesSelectionnees[0];
 	}
-
-	// TODO Les impacts sur les performances sont à mesurer
 
 	// Creation d'un seeder
 	random_device lSeeder;

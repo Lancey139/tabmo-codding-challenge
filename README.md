@@ -54,7 +54,7 @@ L'application se lance. Les paramètres par défaut pricipaux sont les suivants:
 
 Afin de les modifier, se référer à la section configuration de l'application de ce README
 
-**NB** : Pour des raisons techniques (drogo ne prend pas en compte son fichier de log avant d'avoir lancé le run) les logs liés au parsing des campagnes sortent dans le runtime. C'est pourquoi il est préconisé de lancer la commande ci-dessus
+**NB** : Pour des raisons techniques (drogo ne prend pas en compte son fichier de log avant d'avoir lancé le run) les logs liés au parsing des campagnes sortent dans le stdout. C'est pourquoi il est préconisé de lancer la commande ci-dessus. Ce fichier ne contiendra des données que si l'une des campagnes parsées contient une erreur. De manière analogue, le fichier rtb-request.log ne contiendra pas de données en mode INFO si le comportement est nominal.
 
 # Configuration de l'application
 
