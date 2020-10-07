@@ -148,75 +148,75 @@ Json::Value CampagnesManager::SelectCampagne(BidRequest& pBidRequest)
 		/*
 		 * Vérification des filtres
 		 */
+		// Déclaration des lambda permettant de réaliser les filtres sur chaque paramètre
+		auto lLambdaLang = [&pBidRequest](string filterValue){
+					return pBidRequest.mDeviceLang.compare(filterValue) == 0;
+				};
+		// La lambda pour le filtre app est un filtre de type : "contain case sensitive"
+		auto lLambdaApp = [&pBidRequest](string filterValue){
+					return pBidRequest.mAppName.find(filterValue) != string::npos;
+				};
+		auto lLambdaIfa = [&pBidRequest](string filterValue){
+					return pBidRequest.mDeviceIfa.compare(filterValue) == 0;
+				};
 
-		/*
-		 * LANGUES
-		 */
-		if(lFiltreCompatible)
+		// On passe la langue et l'ifa dans la requete en minuscule
+		for_each(pBidRequest.mDeviceLang.begin(), pBidRequest.mDeviceLang.end(), [](char& c){c = tolower(c);});
+		for_each(pBidRequest.mDeviceIfa.begin(), pBidRequest.mDeviceIfa.end(), [](char& c){c = tolower(c);});
+
+		// INCLUDE : itération sur les paramètres includes
+		// Utilisation d'un const iterator car le GetFilterInclude retourne une const map
+		for(map<string, vector<string>>::const_iterator lFilterIncludeItr = itr->GetFilterInclude().begin();
+				lFilterIncludeItr != itr->GetFilterInclude().end(); lFilterIncludeItr++)
 		{
-			// On commence par passer la langue dans la requete en minuscule
-			for_each(pBidRequest.mDeviceLang.begin(), pBidRequest.mDeviceLang.end(), [](char& c){c = tolower(c);});
-
-			auto lLambdaLang = [&pBidRequest](string filterValue){
-						return pBidRequest.mDeviceLang.compare(filterValue) == 0;
-					};
 			// Pas de vérification sur mDeviceLang ici car déjà vérifier à l'arriver de la requete
-			if( itr->GetFilterInclude().count("language") > 0)
-				lFiltreCompatible =  find_if(itr->GetFilterInclude().at("language").begin(), itr->GetFilterInclude().at("language").end(), lLambdaLang) !=
-						itr->GetFilterInclude().at("language").end();
+			if(lFiltreCompatible && lFilterIncludeItr->first.compare("language") == 0)
+			{
+				lFiltreCompatible =  find_if(lFilterIncludeItr->second.begin(), lFilterIncludeItr->second.end(), lLambdaLang) !=
+						lFilterIncludeItr->second.end();
+			}
 
-			if( lFiltreCompatible && itr->GetFilterExclude().count("language") > 0)
-				lFiltreCompatible =  find_if(itr->GetFilterExclude().at("language").begin(), itr->GetFilterExclude().at("language").end(), lLambdaLang) ==
-						itr->GetFilterExclude().at("language").end();
-		}
-		/*
-		 * Nom de l'application
-		 */
-		if(lFiltreCompatible)
-		{
-			auto lLambdaApp = [&pBidRequest](string filterValue){
-						return pBidRequest.mAppName.find(filterValue) != string::npos;
-					};
-			if( lFiltreCompatible && itr->GetFilterInclude().count("application") > 0)
+			if(lFiltreCompatible && lFilterIncludeItr->first.compare("application") == 0)
 			{
 				lFiltreCompatible = !pBidRequest.mAppName.empty() &&
-						find_if(itr->GetFilterInclude().at("application").begin(), itr->GetFilterInclude().at("application").end(), lLambdaApp) !=
-						itr->GetFilterInclude().at("application").end();
+						find_if(lFilterIncludeItr->second.begin(), lFilterIncludeItr->second.end(), lLambdaApp) !=
+								lFilterIncludeItr->second.end();
 			}
 
-			if( lFiltreCompatible && itr->GetFilterExclude().count("application") > 0)
+			if(lFiltreCompatible && lFilterIncludeItr->first.compare("ifa") == 0)
 			{
-				lFiltreCompatible =  !pBidRequest.mAppName.empty() &&
-						find_if(itr->GetFilterExclude().at("application").begin(), itr->GetFilterExclude().at("application").end(), lLambdaApp) ==
-						itr->GetFilterExclude().at("application").end();
+				lFiltreCompatible =  !pBidRequest.mDeviceIfa.empty() &&
+						find_if(lFilterIncludeItr->second.begin(), lFilterIncludeItr->second.end(), lLambdaIfa) !=
+								lFilterIncludeItr->second.end();
 			}
 		}
 
-		/*
-		 * IFA
-		 */
-		if(lFiltreCompatible)
+		// EXCLUDE : itération sur les paramètres exclude
+		for(map<string, vector<string>>::const_iterator lFilterExcludeItr = itr->GetFilterExclude().begin();
+				lFilterExcludeItr != itr->GetFilterExclude().end(); lFilterExcludeItr++)
 		{
-			for_each(pBidRequest.mDeviceIfa.begin(), pBidRequest.mDeviceIfa.end(), [](char& c){c = tolower(c);});
-
-			auto lLambdaIFA = [&pBidRequest](string filterValue){
-						return pBidRequest.mDeviceIfa.compare(filterValue) == 0;
-					};
-
-			if( lFiltreCompatible && itr->GetFilterInclude().count("ifa") > 0)
+			// Pas de vérification sur mDeviceLang ici car déjà vérifier à l'arriver de la requete
+			if(lFiltreCompatible && lFilterExcludeItr->first.compare("language") == 0)
 			{
-				lFiltreCompatible =  !pBidRequest.mDeviceIfa.empty() &&
-						find_if(itr->GetFilterInclude().at("ifa").begin(), itr->GetFilterInclude().at("ifa").end(), lLambdaIFA) !=
-						itr->GetFilterInclude().at("ifa").end();
+				lFiltreCompatible =  find_if(lFilterExcludeItr->second.begin(), lFilterExcludeItr->second.end(), lLambdaLang) ==
+						lFilterExcludeItr->second.end();
 			}
 
-			if( lFiltreCompatible && itr->GetFilterExclude().count("ifa") > 0)
+			if(lFiltreCompatible && lFilterExcludeItr->first.compare("application") == 0)
+			{
+				lFiltreCompatible = !pBidRequest.mAppName.empty() &&
+						find_if(lFilterExcludeItr->second.begin(), lFilterExcludeItr->second.end(), lLambdaApp) ==
+								lFilterExcludeItr->second.end();
+			}
+
+			if(lFiltreCompatible && lFilterExcludeItr->first.compare("ifa") == 0)
 			{
 				lFiltreCompatible =  !pBidRequest.mDeviceIfa.empty() &&
-						find_if(itr->GetFilterExclude().at("ifa").begin(), itr->GetFilterExclude().at("ifa").end(), lLambdaIFA) ==
-						itr->GetFilterExclude().at("ifa").end();
+						find_if(lFilterExcludeItr->second.begin(), lFilterExcludeItr->second.end(), lLambdaIfa) ==
+								lFilterExcludeItr->second.end();
 			}
 		}
+
 		/*
 		 * Fin de la vérification de la campagne, ajout au vecteur de campagne compatible
 		 */
